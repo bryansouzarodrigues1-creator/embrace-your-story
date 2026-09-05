@@ -1,135 +1,147 @@
 import { useMemo, useState } from "react";
-import { ArrowRight, Bot, BrainCircuit, CheckCircle2, ChevronRight, CircleDollarSign, Clock3, Command, Gauge, Globe2, LayoutDashboard, MessageSquareText, Network, Play, Radar, ShieldCheck, Sparkles, Target, TrendingUp, Users, WandSparkles, Zap } from "lucide-react";
+import {
+  AlertTriangle,
+  ArrowUpRight,
+  BellRing,
+  Bot,
+  Check,
+  CheckCircle2,
+  ChevronDown,
+  Clock3,
+  Command,
+  CreditCard,
+  DollarSign,
+  FileCheck2,
+  Filter,
+  LayoutDashboard,
+  Mail,
+  MoreHorizontal,
+  RefreshCw,
+  Search,
+  Send,
+  ShieldCheck,
+  Sparkles,
+  Target,
+  TrendingDown,
+  TrendingUp,
+  Users,
+  WalletCards,
+  X,
+  Zap,
+} from "lucide-react";
 import { createFileRoute } from "@tanstack/react-router";
 
 export const Route = createFileRoute("/")({ component: Index });
 
-type Workflow = { name: string; status: string; value: string; color: string };
+type Invoice = {
+  id: string;
+  customer: string;
+  amount: number;
+  due: string;
+  daysLate: number;
+  risk: "Alto" | "Médio" | "Baixo";
+  status: "Atrasada" | "Vence hoje" | "Próxima";
+  lastContact: string;
+};
 
-const workflows: Workflow[] = [
-  { name: "Recuperação de leads esquecidos", status: "Executando", value: "+R$ 8.420", color: "bg-emerald-400" },
-  { name: "Clientes em risco de churn", status: "Monitorando", value: "17 sinais", color: "bg-amber-400" },
-  { name: "Propostas sem resposta", status: "4 ações prontas", value: "R$ 31.800", color: "bg-violet-400" },
+const initialInvoices: Invoice[] = [
+  { id: "INV-2048", customer: "Orion Arquitetura", amount: 12840, due: "02 set", daysLate: 3, risk: "Alto", status: "Atrasada", lastContact: "Nunca" },
+  { id: "INV-2042", customer: "Ateliê Norte", amount: 7840, due: "04 set", daysLate: 1, risk: "Alto", status: "Atrasada", lastContact: "há 2 dias" },
+  { id: "INV-2031", customer: "Lumen Engenharia", amount: 18600, due: "05 set", daysLate: 0, risk: "Médio", status: "Vence hoje", lastContact: "há 5 dias" },
+  { id: "INV-2027", customer: "Casa Brava Hotel", amount: 9320, due: "08 set", daysLate: 0, risk: "Baixo", status: "Próxima", lastContact: "há 1 dia" },
+  { id: "INV-2019", customer: "Vértice Móveis", amount: 4210, due: "10 set", daysLate: 0, risk: "Médio", status: "Próxima", lastContact: "há 7 dias" },
 ];
 
+const money = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 });
+
 function Index() {
+  const [invoices, setInvoices] = useState(initialInvoices);
+  const [selected, setSelected] = useState<Invoice | null>(initialInvoices[0]);
+  const [query, setQuery] = useState("");
+  const [filter, setFilter] = useState<"Todas" | "Alto" | "Atrasadas">("Todas");
   const [commandOpen, setCommandOpen] = useState(false);
-  const [running, setRunning] = useState(false);
-  const [active, setActive] = useState("Overview");
-  const [toast, setToast] = useState("");
-  const [selectedWorkflow, setSelectedWorkflow] = useState(workflows[0]);
+  const [notice, setNotice] = useState("");
+  const [scanning, setScanning] = useState(false);
 
-  const liveMetric = useMemo(() => running ? "14 agentes trabalhando" : "12 agentes trabalhando", [running]);
+  const filtered = useMemo(() => invoices.filter((invoice) => {
+    const matchesQuery = `${invoice.customer} ${invoice.id}`.toLowerCase().includes(query.toLowerCase());
+    const matchesFilter = filter === "Todas" || (filter === "Alto" ? invoice.risk === "Alto" : invoice.status === "Atrasada");
+    return matchesQuery && matchesFilter;
+  }), [filter, invoices, query]);
 
-  const runDemo = () => {
-    setRunning(true);
-    setToast("Embrace iniciou uma nova missão autônoma.");
-    window.setTimeout(() => setRunning(false), 2600);
-    window.setTimeout(() => setToast("Missão concluída: 3 oportunidades identificadas."), 2800);
-    window.setTimeout(() => setToast(""), 6000);
+  const overdueTotal = invoices.filter((i) => i.status === "Atrasada").reduce((sum, i) => sum + i.amount, 0);
+  const atRiskTotal = invoices.filter((i) => i.risk === "Alto").reduce((sum, i) => sum + i.amount, 0);
+
+  const flash = (message: string) => {
+    setNotice(message);
+    window.setTimeout(() => setNotice(""), 3200);
+  };
+
+  const sendRecovery = (invoice: Invoice) => {
+    setInvoices((current) => current.map((item) => item.id === invoice.id ? { ...item, lastContact: "agora" } : item));
+    setSelected({ ...invoice, lastContact: "agora" });
+    flash(`Cobrança inteligente enviada para ${invoice.customer}.`);
+  };
+
+  const runScan = () => {
+    setScanning(true);
+    flash("CashPilot está analisando comportamento de pagamento...");
+    window.setTimeout(() => {
+      setScanning(false);
+      flash("Análise concluída: 2 clientes entraram em zona de risco.");
+    }, 1800);
   };
 
   return (
-    <main className="min-h-screen overflow-x-hidden bg-[#07080c] text-white selection:bg-violet-400/30">
-      <div className="pointer-events-none fixed inset-0 bg-[radial-gradient(circle_at_75%_5%,rgba(139,92,246,.18),transparent_28%),radial-gradient(circle_at_10%_45%,rgba(45,212,191,.07),transparent_28%)]" />
-
-      <header className="sticky top-0 z-50 border-b border-white/[0.06] bg-[#07080c]/80 backdrop-blur-2xl">
-        <div className="mx-auto flex max-w-[1440px] items-center justify-between px-5 py-4 lg:px-8">
-          <button onClick={() => setActive("Overview")} className="flex items-center gap-2.5">
-            <span className="grid size-9 place-items-center rounded-xl bg-white text-black shadow-lg shadow-white/10"><Sparkles className="size-4" /></span>
-            <span className="font-semibold tracking-tight">embrace<span className="text-violet-300">.</span></span>
-          </button>
-          <div className="hidden items-center gap-1 rounded-full border border-white/8 bg-white/[0.03] p-1 md:flex">
-            {['Overview', 'Missions', 'Intelligence', 'Network'].map((item) => (
-              <button key={item} onClick={() => setActive(item)} className={`rounded-full px-4 py-2 text-xs font-medium transition ${active === item ? 'bg-white text-black' : 'text-white/45 hover:text-white'}`}>{item}</button>
-            ))}
+    <main className="min-h-screen bg-[#f6f7f9] text-[#101217]">
+      <header className="sticky top-0 z-40 border-b border-black/[0.07] bg-white/90 backdrop-blur-xl">
+        <div className="mx-auto flex h-16 max-w-[1500px] items-center justify-between px-5 lg:px-8">
+          <div className="flex items-center gap-8">
+            <div className="flex items-center gap-2.5"><span className="grid size-8 place-items-center rounded-xl bg-[#11131a] text-white"><WalletCards className="size-4" /></span><span className="font-semibold tracking-[-0.03em]">CashPilot</span></div>
+            <nav className="hidden items-center gap-1 md:flex"><button className="rounded-lg bg-black/[0.05] px-3 py-2 text-xs font-medium">Visão geral</button><button className="px-3 py-2 text-xs text-black/45 hover:text-black">Recebíveis</button><button className="px-3 py-2 text-xs text-black/45 hover:text-black">Clientes</button><button className="px-3 py-2 text-xs text-black/45 hover:text-black">Automações</button></nav>
           </div>
-          <div className="flex items-center gap-2">
-            <button aria-label="Command palette" onClick={() => setCommandOpen(true)} className="hidden rounded-xl border border-white/8 bg-white/[0.03] p-2.5 text-white/45 transition hover:text-white sm:block"><Command className="size-4" /></button>
-            <button onClick={runDemo} className="rounded-full bg-white px-4 py-2 text-xs font-semibold text-black transition hover:bg-white/90">Run mission</button>
-          </div>
+          <div className="flex items-center gap-2"><button onClick={() => setCommandOpen(true)} className="hidden rounded-lg border border-black/10 p-2 text-black/40 hover:text-black sm:block" aria-label="Abrir comandos"><Command className="size-4" /></button><button onClick={runScan} className="flex items-center gap-2 rounded-lg bg-[#11131a] px-3 py-2 text-xs font-semibold text-white transition hover:bg-black"><Sparkles className="size-3.5" /> {scanning ? "Analisando..." : "Rodar análise"}</button><div className="ml-1 grid size-8 place-items-center rounded-full bg-violet-100 text-xs font-semibold text-violet-700">BR</div></div>
         </div>
       </header>
 
-      <section className="relative z-10 mx-auto max-w-[1440px] px-5 pb-10 pt-10 lg:px-8 lg:pt-14">
-        <div className="flex flex-col justify-between gap-6 border-b border-white/[0.07] pb-8 lg:flex-row lg:items-end">
-          <div>
-            <div className="mb-4 flex items-center gap-2 text-[11px] font-medium uppercase tracking-[0.2em] text-emerald-300/70"><span className="size-1.5 rounded-full bg-emerald-400 shadow-[0_0_12px_rgba(52,211,153,.9)]" /> System online · {liveMetric}</div>
-            <h1 className="max-w-4xl text-4xl font-semibold tracking-[-0.04em] sm:text-5xl lg:text-6xl">Your business, <span className="text-white/35">thinking ahead.</span></h1>
-            <p className="mt-4 max-w-2xl text-base leading-7 text-white/40">Embrace é uma camada operacional de IA que observa seus sinais, encontra oportunidades e executa o próximo passo — antes que você precise pedir.</p>
-          </div>
-          <div className="flex items-center gap-2 text-xs text-white/35"><ShieldCheck className="size-4 text-emerald-400" /> Human approval where it matters</div>
-        </div>
+      <div className="mx-auto grid max-w-[1500px] lg:grid-cols-[230px_1fr]">
+        <aside className="hidden border-r border-black/[0.06] px-4 py-6 lg:block"><p className="px-3 text-[10px] font-bold uppercase tracking-[0.18em] text-black/30">Operação</p><div className="mt-3 space-y-1">{[[LayoutDashboard, "Visão geral", true], [CreditCard, "Recebíveis", false], [Users, "Clientes", false], [Bot, "Agente de cobrança", false]].map(([Icon, label, active]) => <button key={String(label)} className={`flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-xs font-medium ${active ? "bg-white shadow-sm ring-1 ring-black/[0.05]" : "text-black/45 hover:bg-white/70"}`}><Icon className="size-4" />{label}</button>)}</div><p className="mt-9 px-3 text-[10px] font-bold uppercase tracking-[0.18em] text-black/30">Inteligência</p><div className="mt-3 space-y-1">{[[Target, "Risco de atraso"], [RefreshCw, "Reconciliação"], [ShieldCheck, "Políticas"]].map(([Icon, label]) => <button key={String(label)} className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-xs text-black/45 hover:bg-white/70"><Icon className="size-4" />{label}</button>)}</div><div className="mt-12 rounded-2xl border border-violet-200 bg-violet-50 p-4"><p className="text-xs font-semibold">CashPilot AI</p><p className="mt-1 text-[11px] leading-4 text-black/45">Aprende com seus ciclos de pagamento e ajusta o próximo contato.</p><button onClick={runScan} className="mt-3 text-[11px] font-semibold text-violet-700">Analisar agora →</button></div></aside>
 
-        <div className="grid gap-4 py-5 sm:grid-cols-2 xl:grid-cols-4">
-          {[
-            ['Pipeline protegido', 'R$ 184.240', '+18.4%', TrendingUp],
-            ['Oportunidades', '37', '+9 hoje', Target],
-            ['Tempo recuperado', '126h', 'este mês', Clock3],
-            ['Ações autônomas', '842', '98.7% sucesso', Zap],
-          ].map(([label, value, delta, Icon]) => (
-            <div key={String(label)} className="rounded-2xl border border-white/8 bg-white/[0.035] p-5 transition hover:border-white/15 hover:bg-white/[0.05]">
-              <div className="flex items-center justify-between"><span className="text-xs text-white/35">{label}</span><Icon className="size-4 text-white/25" /></div>
-              <div className="mt-5 text-2xl font-semibold tracking-tight">{value}</div>
-              <div className="mt-1 text-xs text-emerald-300/70">{delta}</div>
-            </div>
-          ))}
-        </div>
+        <section className="min-w-0 px-5 py-7 lg:px-8">
+          <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-end"><div><p className="text-xs font-medium text-black/40">Sexta-feira, 5 de setembro</p><h1 className="mt-1 text-2xl font-semibold tracking-[-0.04em] sm:text-3xl">Bom dia. Seu caixa está sob controle.</h1><p className="mt-2 max-w-2xl text-sm text-black/45">O CashPilot monitora quem deve, quando pagar e qual ação aumenta a chance de receber — sem você precisar perseguir cada cliente.</p></div><div className="flex items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs text-emerald-700"><span className="size-1.5 rounded-full bg-emerald-500" /> IA ativa · 24 sinais analisados</div></div>
 
-        <div className="grid gap-4 lg:grid-cols-[1.35fr_.65fr]">
-          <section className="overflow-hidden rounded-3xl border border-white/8 bg-white/[0.035]">
-            <div className="flex items-center justify-between border-b border-white/7 px-5 py-4"><div><p className="text-xs font-medium uppercase tracking-[0.16em] text-white/30">Autonomous missions</p><h2 className="mt-1 font-semibold">The business is moving.</h2></div><button onClick={() => setActive('Missions')} className="flex items-center gap-1 text-xs text-white/40 hover:text-white">View all <ChevronRight className="size-3.5" /></button></div>
-            <div className="divide-y divide-white/[0.06]">
-              {workflows.map((workflow) => (
-                <button key={workflow.name} onClick={() => setSelectedWorkflow(workflow)} className="flex w-full items-center justify-between gap-4 px-5 py-5 text-left transition hover:bg-white/[0.035]">
-                  <div className="flex min-w-0 items-center gap-3"><span className={`size-2 rounded-full ${workflow.color}`} /><div className="min-w-0"><p className="truncate text-sm font-medium">{workflow.name}</p><p className="mt-1 text-xs text-white/30">{workflow.status}</p></div></div>
-                  <span className="shrink-0 text-xs font-medium text-white/55">{workflow.value}</span>
-                </button>
-              ))}
-            </div>
-            <div className="m-4 rounded-2xl border border-violet-300/10 bg-gradient-to-r from-violet-400/10 to-transparent p-4"><div className="flex items-center gap-3"><span className="grid size-9 place-items-center rounded-xl bg-violet-400/10 text-violet-300"><Bot className="size-4" /></span><div className="min-w-0 flex-1"><p className="text-xs font-medium">{running ? 'Agent swarm is executing...' : 'Embrace recommendation'}</p><p className="mt-1 truncate text-xs text-white/35">{running ? 'Research → decide → execute → verify' : `${selectedWorkflow.name} has a high-confidence next action.`}</p></div><button onClick={runDemo} className="rounded-full bg-white px-3 py-1.5 text-[11px] font-semibold text-black">Approve</button></div></div>
-          </section>
-
-          <aside className="rounded-3xl border border-white/8 bg-white/[0.035] p-5">
-            <div className="flex items-center justify-between"><p className="text-xs font-medium uppercase tracking-[0.16em] text-white/30">Signal map</p><Radar className="size-4 text-violet-300" /></div>
-            <div className="relative mx-auto mt-7 aspect-square max-w-[280px] rounded-full border border-white/7 bg-[radial-gradient(circle,rgba(139,92,246,.15),transparent_55%)]">
-              {[['Customers', 'left-8 top-12'], ['Revenue', 'right-2 top-28'], ['Market', 'left-3 bottom-20'], ['Ops', 'right-6 bottom-10']].map(([name, pos]) => <div key={name} className={`absolute ${pos} rounded-xl border border-white/10 bg-[#101117]/90 px-3 py-2 text-[10px] text-white/55 shadow-xl backdrop-blur`}><span className="mr-1.5 inline-block size-1.5 rounded-full bg-violet-300" />{name}</div>)}
-              <div className="absolute inset-1/2 grid size-20 -translate-x-1/2 -translate-y-1/2 place-items-center rounded-3xl border border-violet-300/20 bg-violet-400/10 shadow-[0_0_70px_rgba(139,92,246,.18)]"><BrainCircuit className="size-8 text-violet-200" /></div>
-              <div className="absolute left-1/2 top-0 h-full w-px -translate-x-1/2 bg-gradient-to-b from-transparent via-violet-300/20 to-transparent" /><div className="absolute left-0 top-1/2 h-px w-full -translate-y-1/2 bg-gradient-to-r from-transparent via-violet-300/20 to-transparent" />
-            </div>
-            <p className="mt-5 text-sm font-medium">One context, every signal.</p><p className="mt-2 text-xs leading-5 text-white/30">Embrace conecta contexto de clientes, operações, receita e mercado para decidir o que merece atenção.</p>
-          </aside>
-        </div>
-      </section>
-
-      <section className="relative z-10 border-y border-white/[0.06] bg-white/[0.018]">
-        <div className="mx-auto grid max-w-[1440px] gap-10 px-5 py-16 lg:grid-cols-[.8fr_1.2fr] lg:px-8">
-          <div><p className="text-xs font-semibold uppercase tracking-[0.2em] text-violet-300/70">Not another dashboard</p><h2 className="mt-4 text-3xl font-semibold tracking-[-0.035em] sm:text-4xl">You don't need more software.<br /><span className="text-white/35">You need fewer things to do.</span></h2><p className="mt-5 max-w-md text-sm leading-6 text-white/35">A interface é só o cockpit. O valor está no sistema de agentes que transforma sinais em trabalho concluído, com aprovação humana nos pontos sensíveis.</p></div>
-          <div className="grid gap-3 sm:grid-cols-2">
+          <div className="mt-7 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
             {[
-              [Network, 'Context graph', 'Memória operacional contínua em vez de dados espalhados.'],
-              [WandSparkles, 'Mission engine', 'Transforme um objetivo em pesquisa, decisão, execução e verificação.'],
-              [MessageSquareText, 'Human handoff', 'Quando a confiança não basta, o sistema chama você — com contexto pronto.'],
-              [Gauge, 'Outcome ledger', 'Meça dinheiro, tempo e oportunidades recuperadas por cada missão.'],
-            ].map(([Icon, title, text]) => <article key={String(title)} className="rounded-2xl border border-white/8 bg-white/[0.03] p-5"><Icon className="size-5 text-white/45" /><h3 className="mt-8 text-sm font-semibold">{title}</h3><p className="mt-2 text-xs leading-5 text-white/30">{text}</p></article>)}
+              ["A receber", money.format(184240), "+12,8% vs. mês anterior", WalletCards, "text-black"],
+              ["Em atraso", money.format(overdueTotal), `${invoices.filter(i => i.status === "Atrasada").length} títulos precisam de ação`, AlertTriangle, "text-rose-600"],
+              ["Em risco", money.format(atRiskTotal), "IA encontrou 2 sinais críticos", Target, "text-amber-600"],
+              ["Recuperado por IA", money.format(28460), "últimos 30 dias", TrendingUp, "text-emerald-600"],
+            ].map(([label, value, helper, Icon, color]) => <article key={String(label)} className="rounded-2xl border border-black/[0.07] bg-white p-5 shadow-[0_1px_2px_rgba(0,0,0,.03)]"><div className="flex items-center justify-between"><span className="text-xs text-black/40">{label}</span><Icon className={`size-4 ${color}`} /></div><p className="mt-5 text-2xl font-semibold tracking-[-0.04em]">{value}</p><p className="mt-1 text-[11px] text-black/35">{helper}</p></article>)}
           </div>
-        </div>
-      </section>
 
-      <section className="relative z-10 mx-auto max-w-[1440px] px-5 py-20 lg:px-8">
-        <div className="rounded-[2rem] border border-white/8 bg-white/[0.035] p-6 sm:p-8 lg:p-10">
-          <div className="flex flex-col justify-between gap-8 lg:flex-row lg:items-end"><div><p className="text-xs font-semibold uppercase tracking-[0.2em] text-emerald-300/70">Built for the agentic era</p><h2 className="mt-4 max-w-2xl text-3xl font-semibold tracking-[-0.04em] sm:text-4xl">The software works while you work on the business.</h2></div><button onClick={runDemo} className="group inline-flex items-center justify-center gap-2 rounded-full bg-white px-6 py-3 text-sm font-semibold text-black">Launch a mission <Play className="size-3.5 fill-current transition group-hover:translate-x-0.5" /></button></div>
-          <div className="mt-10 grid gap-3 md:grid-cols-4">
-            {[['Observe', '2,481 signals', Globe2], ['Reason', '37 hypotheses', BrainCircuit], ['Act', '842 actions', Zap], ['Verify', '98.7% success', CheckCircle2]].map(([title, value, Icon]) => <div key={String(title)} className="rounded-2xl border border-white/7 bg-black/20 p-5"><Icon className="size-4 text-white/35" /><p className="mt-7 text-xs text-white/35">{title}</p><p className="mt-1 font-semibold">{value}</p></div>)}
+          <div className="mt-4 grid gap-4 xl:grid-cols-[1fr_360px]">
+            <section className="min-w-0 overflow-hidden rounded-2xl border border-black/[0.07] bg-white">
+              <div className="flex flex-col gap-3 border-b border-black/[0.06] p-5 sm:flex-row sm:items-center sm:justify-between"><div><h2 className="text-sm font-semibold">Fila de recebíveis</h2><p className="mt-1 text-xs text-black/35">Priorizada pelo potencial de atraso e valor em risco.</p></div><div className="flex gap-2"><div className="relative"><Search className="absolute left-2.5 top-2.5 size-3.5 text-black/25" /><input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Buscar cliente..." className="w-44 rounded-lg border border-black/10 bg-[#fafafa] py-2 pl-8 pr-3 text-xs outline-none focus:border-black/25" /></div><button onClick={() => setFilter(filter === "Todas" ? "Alto" : filter === "Alto" ? "Atrasadas" : "Todas")} className="flex items-center gap-1.5 rounded-lg border border-black/10 px-2.5 text-xs text-black/55"><Filter className="size-3.5" /> {filter}<ChevronDown className="size-3" /></button></div></div>
+              <div className="overflow-x-auto"><table className="w-full min-w-[700px] text-left"><thead><tr className="border-b border-black/[0.05] text-[10px] uppercase tracking-[0.12em] text-black/30"><th className="px-5 py-3 font-semibold">Cliente</th><th className="px-3 py-3 font-semibold">Vencimento</th><th className="px-3 py-3 font-semibold">Valor</th><th className="px-3 py-3 font-semibold">Risco</th><th className="px-3 py-3 font-semibold">Último contato</th><th className="px-5 py-3"></th></tr></thead><tbody>{filtered.map((invoice) => <tr key={invoice.id} onClick={() => setSelected(invoice)} className="cursor-pointer border-b border-black/[0.05] transition hover:bg-[#fafafa]"><td className="px-5 py-4"><p className="text-xs font-semibold">{invoice.customer}</p><p className="mt-1 text-[10px] text-black/30">{invoice.id}</p></td><td className="px-3 py-4"><span className={`text-xs ${invoice.daysLate > 0 ? "font-semibold text-rose-600" : "text-black/55"}`}>{invoice.due}</span>{invoice.daysLate > 0 && <span className="ml-1.5 text-[10px] text-rose-500">+{invoice.daysLate}d</span>}</td><td className="px-3 py-4 text-xs font-medium">{money.format(invoice.amount)}</td><td className="px-3 py-4"><span className={`inline-flex rounded-full px-2 py-1 text-[10px] font-semibold ${invoice.risk === "Alto" ? "bg-rose-50 text-rose-700" : invoice.risk === "Médio" ? "bg-amber-50 text-amber-700" : "bg-emerald-50 text-emerald-700"}`}>{invoice.risk}</span></td><td className="px-3 py-4 text-xs text-black/40">{invoice.lastContact}</td><td className="px-5 py-4 text-right"><MoreHorizontal className="ml-auto size-4 text-black/25" /></td></tr>)}</tbody></table></div>
+              {filtered.length === 0 && <div className="p-12 text-center"><Search className="mx-auto size-6 text-black/20" /><p className="mt-3 text-sm font-medium">Nenhum recebível encontrado.</p><p className="mt-1 text-xs text-black/35">Tente outro cliente ou filtro.</p></div>}
+            </section>
+
+            <aside className="rounded-2xl border border-black/[0.07] bg-[#11131a] p-5 text-white shadow-xl shadow-black/10">
+              {selected ? <><div className="flex items-start justify-between"><div><span className="text-[10px] font-medium uppercase tracking-[0.16em] text-white/35">Próxima melhor ação</span><h2 className="mt-2 text-lg font-semibold tracking-[-0.03em]">{selected.customer}</h2><p className="mt-1 text-xs text-white/35">{selected.id} · {money.format(selected.amount)}</p></div><button onClick={() => setSelected(null)} className="text-white/25 hover:text-white"><X className="size-4" /></button></div><div className="mt-6 rounded-xl border border-violet-300/10 bg-violet-400/[0.08] p-4"><div className="flex gap-3"><span className="grid size-8 shrink-0 place-items-center rounded-lg bg-violet-400/10 text-violet-200"><Bot className="size-4" /></span><div><p className="text-xs font-semibold">Confiança 91%</p><p className="mt-1 text-[11px] leading-5 text-white/45">O padrão indica que um lembrete pessoal hoje tem maior chance de recuperar este valor do que esperar o próximo ciclo.</p></div></div></div><div className="mt-5 space-y-3"><div className="flex items-center gap-3"><span className="grid size-7 place-items-center rounded-lg bg-white/5"><Clock3 className="size-3.5 text-white/40" /></span><div><p className="text-[10px] text-white/30">Janela recomendada</p><p className="text-xs font-medium">Hoje, entre 14h e 16h</p></div></div><div className="flex items-center gap-3"><span className="grid size-7 place-items-center rounded-lg bg-white/5"><Mail className="size-3.5 text-white/40" /></span><div><p className="text-[10px] text-white/30">Canal sugerido</p><p className="text-xs font-medium">WhatsApp + e-mail de respaldo</p></div></div><div className="flex items-center gap-3"><span className="grid size-7 place-items-center rounded-lg bg-white/5"><ShieldCheck className="size-3.5 text-white/40" /></span><div><p className="text-[10px] text-white/30">Política</p><p className="text-xs font-medium">Sem ameaça, juros ou cobrança automática</p></div></div></div><button onClick={() => sendRecovery(selected)} className="mt-7 flex w-full items-center justify-center gap-2 rounded-xl bg-white py-3 text-xs font-semibold text-black transition hover:bg-white/90"><Send className="size-3.5" /> Aprovar cobrança inteligente</button><button onClick={() => flash("Mensagem aberta para edição antes do envio.")} className="mt-2 w-full py-2 text-[11px] text-white/35 hover:text-white">Revisar mensagem</button></> : <div className="grid min-h-[420px] place-items-center text-center"><div><FileCheck2 className="mx-auto size-7 text-white/20" /><p className="mt-3 text-sm font-medium">Selecione um recebível</p><p className="mt-1 text-xs text-white/30">O agente explicará a próxima ação.</p></div></div>}
+            </aside>
           </div>
-        </div>
-      </section>
 
-      <footer className="relative z-10 border-t border-white/[0.06] px-5 py-8 lg:px-8"><div className="mx-auto flex max-w-[1440px] flex-col gap-3 text-xs text-white/25 sm:flex-row sm:items-center sm:justify-between"><span className="font-medium text-white/45">embrace.</span><span>AI-native business operations · 2026</span><span className="flex items-center gap-1"><CircleDollarSign className="size-3" /> Outcome over activity.</span></div></footer>
+          <section className="mt-4 grid gap-4 md:grid-cols-3">
+            <article className="rounded-2xl border border-black/[0.07] bg-white p-5"><div className="flex items-center gap-2 text-xs font-semibold"><BellRing className="size-4 text-amber-500" /> Alertas inteligentes</div><p className="mt-4 text-2xl font-semibold">7</p><p className="mt-1 text-xs text-black/35">eventos merecem sua atenção hoje</p><button onClick={runScan} className="mt-5 text-xs font-semibold text-black">Ver sinais <ArrowUpRight className="ml-1 inline size-3" /></button></article>
+            <article className="rounded-2xl border border-black/[0.07] bg-white p-5"><div className="flex items-center gap-2 text-xs font-semibold"><TrendingDown className="size-4 text-rose-500" /> Tendência de atraso</div><div className="mt-5 flex items-end gap-1"><span className="text-2xl font-semibold">-14%</span><span className="pb-1 text-[10px] text-emerald-600">vs. 30 dias</span></div><div className="mt-4 h-10 flex items-end gap-1">{[30,34,28,38,25,29,18,22,14,17,10,12].map((height, i) => <span key={i} className="flex-1 rounded-sm bg-black/[0.08]" style={{ height: `${height}px` }} />)}</div></article>
+            <article className="rounded-2xl border border-black/[0.07] bg-white p-5"><div className="flex items-center gap-2 text-xs font-semibold"><CheckCircle2 className="size-4 text-emerald-500" /> Automação</div><p className="mt-4 text-sm font-semibold">31 cobranças resolvidas</p><p className="mt-1 text-xs text-black/35">sem intervenção humana este mês</p><div className="mt-4 flex items-center gap-2 text-[10px] text-emerald-700"><Check className="size-3" /> regras de segurança ativas</div></article>
+          </section>
+        </section>
+      </div>
 
-      {toast && <div role="status" className="fixed bottom-5 left-1/2 z-[70] -translate-x-1/2 rounded-full border border-white/10 bg-[#12131a]/95 px-5 py-3 text-xs font-medium text-white shadow-2xl backdrop-blur-xl">{toast}</div>}
+      {notice && <div role="status" className="fixed bottom-5 left-1/2 z-[80] flex -translate-x-1/2 items-center gap-2 rounded-full border border-black/10 bg-[#11131a] px-5 py-3 text-xs font-medium text-white shadow-2xl"><Zap className="size-3.5 text-violet-300" />{notice}</div>}
 
-      {commandOpen && <div className="fixed inset-0 z-[60] grid place-items-start justify-center bg-black/60 p-5 pt-[15vh] backdrop-blur-sm" onMouseDown={() => setCommandOpen(false)}><div className="w-full max-w-xl rounded-2xl border border-white/10 bg-[#101117] p-3 shadow-2xl" onMouseDown={(e) => e.stopPropagation()}><div className="flex items-center gap-3 border-b border-white/7 px-3 pb-3"><Command className="size-4 text-white/30" /><input autoFocus placeholder="What do you want Embrace to do?" className="w-full bg-transparent text-sm outline-none placeholder:text-white/25" /></div><div className="mt-2 space-y-1"><button onClick={() => { setCommandOpen(false); runDemo(); }} className="flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left text-sm text-white/65 hover:bg-white/5"><Play className="size-4" /> Start a revenue recovery mission <span className="ml-auto text-[10px] text-white/25">↵</span></button><button onClick={() => { setCommandOpen(false); setActive('Intelligence'); }} className="flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left text-sm text-white/65 hover:bg-white/5"><BrainCircuit className="size-4" /> Show intelligence map</button><button onClick={() => { setCommandOpen(false); setActive('Network'); }} className="flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left text-sm text-white/65 hover:bg-white/5"><Users className="size-4" /> Open business network</button></div></div></div>}
+      {commandOpen && <div className="fixed inset-0 z-[70] grid place-items-start justify-center bg-black/40 p-5 pt-[16vh] backdrop-blur-sm" onMouseDown={() => setCommandOpen(false)}><div className="w-full max-w-lg rounded-2xl bg-white p-3 shadow-2xl" onMouseDown={(e) => e.stopPropagation()}><div className="flex items-center gap-2 border-b border-black/[0.07] px-3 pb-3"><Command className="size-4 text-black/30" /><input autoFocus placeholder="O que você quer resolver?" className="w-full bg-transparent text-sm outline-none placeholder:text-black/25" /></div><div className="mt-2"><button onClick={() => { setCommandOpen(false); runScan(); }} className="flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left text-xs hover:bg-black/[0.04]"><Sparkles className="size-4 text-violet-600" /><span><b>Encontrar dinheiro em risco</b><span className="ml-2 text-black/35">analisar todos os recebíveis</span></span></button><button onClick={() => { setCommandOpen(false); setFilter("Atrasadas"); }} className="flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left text-xs hover:bg-black/[0.04]"><AlertTriangle className="size-4 text-rose-500" /><span><b>Mostrar atrasados</b><span className="ml-2 text-black/35">priorizar cobrança</span></span></button><button onClick={() => { setCommandOpen(false); flash("Relatório de caixa preparado para revisão."); }} className="flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left text-xs hover:bg-black/[0.04]"><DollarSign className="size-4 text-emerald-600" /><span><b>Preparar relatório</b><span className="ml-2 text-black/35">visão executiva do mês</span></span></button></div></div></div>}
     </main>
   );
 }
